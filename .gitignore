@@ -1,0 +1,14 @@
+node_modules/
+dist/
+data/courses.json
+logs/
+*.log
+.DS_Store
+
+# 빌드 산출물 (tsc -b / vite)
+*.tsbuildinfo
+vite.config.d.ts
+vite.config.js
+
+# 로컬 도구 설정
+.claude/
