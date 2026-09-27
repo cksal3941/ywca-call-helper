@@ -5,12 +5,12 @@ import CourseDetail from './components/CourseDetail'
 import Faq from './components/Faq'
 import CallMemoForm from './components/CallMemo'
 import MemoList from './components/MemoList'
-import StaffResult from './components/StaffResult'
+import type { MemoTab } from './components/MemoList'
 import TodayBoard from './components/TodayBoard'
 import Calendar from './components/Calendar'
-import { useLocalStorage } from './hooks/useLocalStorage'
+import { useMemos } from './hooks/useMemos'
 import { useCourses } from './hooks/useCourses'
-import { purgeOldMemos, RETENTION_DAYS } from './utils/retention'
+import { RETENTION_DAYS } from './utils/retention'
 import { getCourseStatus } from './utils/status'
 import type { StatusFilter } from './hooks/useCourseSearch'
 import type { CallMemo } from './types'
@@ -21,7 +21,8 @@ export default function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [boardView, setBoardView] = useState<'today' | 'calendar'>('today')
   const [detailView, setDetailView] = useState<'detail' | 'calendar'>('detail')
-  const [memos, setMemos] = useLocalStorage<CallMemo[]>('ywca_memos', [])
+  const { memos, error: memoError, mode: memoMode, add: addMemoToServer, updateStatus, remove } = useMemos()
+  const [memoTab, setMemoTab] = useState<MemoTab>('callback')
   const searchRef = useRef<HTMLInputElement>(null)
 
   /** 과정 선택 시 항상 상세 탭으로 진입 */
@@ -30,19 +31,21 @@ export default function App() {
     setDetailView('detail')
   }
 
+  /** 홈(초기 화면)으로: 선택 해제 + 오늘의 업무 + 검색/필터 초기화 */
+  function goHome() {
+    setSelectedId(null)
+    setBoardView('today')
+    setQuery('')
+    setFilter('all')
+  }
+
   const { courses, byId, updatedAt, stale, source, refreshing, refresh } = useCourses()
 
   const selectedCourse = selectedId ? byId[selectedId] ?? null : null
   const callbackCount = memos.filter((m) => m.status === '재연락필요').length
   const recruitingCount = courses.filter((c) => getCourseStatus(c) === '모집중').length
 
-  // 실행 시 보관기간(90일) 지난 메모 자동 정리 (기획서 15장)
-  useEffect(() => {
-    setMemos((prev) => {
-      const cleaned = purgeOldMemos(prev)
-      return cleaned.length === prev.length ? prev : cleaned
-    })
-  }, [setMemos])
+  // 보관기간(90일) 자동 정리는 서버(server/memos.mjs)에서 수행한다.
 
   // 키보드 단축키: "/" 검색 포커스, ESC 선택 해제/검색어 초기화
   useEffect(() => {
@@ -68,25 +71,17 @@ export default function App() {
   }, [selectedId, query])
 
   function addMemo(memo: CallMemo) {
-    setMemos((prev) => [memo, ...prev])
-  }
-
-  function updateMemoStatus(id: string, status: CallMemo['status']) {
-    setMemos((prev) => prev.map((m) => (m.id === id ? { ...m, status } : m)))
-  }
-
-  function deleteMemo(id: string) {
-    setMemos((prev) => prev.filter((m) => m.id !== id))
+    // 저장한 메모가 곧바로 보이도록 해당 상태의 탭으로 전환
+    setMemoTab(memo.status === '재연락필요' ? 'callback' : 'all')
+    void addMemoToServer(memo)
   }
 
   return (
     <div className="app">
       <TopBar
-        query={query}
-        onQueryChange={setQuery}
+        onHome={goHome}
         callbackCount={callbackCount}
         recruitingCount={recruitingCount}
-        searchRef={searchRef}
         source={source}
         updatedAt={updatedAt}
         stale={stale}
@@ -97,8 +92,7 @@ export default function App() {
       <div className="workspace">
         {/* 왼쪽: 교육과정 검색 */}
         <section className="panel panel--left" aria-label="교육과정 검색">
-          <h2 className="panel__title">교육과정 · 담당자 검색</h2>
-          <StaffResult byId={byId} query={query} onSelectCourse={selectCourse} />
+          <h2 className="panel__title">교육과정 검색</h2>
           <CourseList
             courses={courses}
             query={query}
@@ -107,6 +101,7 @@ export default function App() {
             onFilterChange={setFilter}
             selectedId={selectedId}
             onSelect={selectCourse}
+            searchRef={searchRef}
           />
         </section>
 
@@ -130,7 +125,7 @@ export default function App() {
                   </button>
                 </div>
                 <button className="panel__back" onClick={() => setSelectedId(null)}>
-                  ← 오늘의 업무
+                  ← 뒤로가기
                 </button>
               </div>
               {detailView === 'detail' ? (
@@ -178,13 +173,18 @@ export default function App() {
         <section className="panel panel--right" aria-label="전화응대 메모">
           <h2 className="panel__title">📞 전화응대 메모</h2>
           <CallMemoForm selectedCourse={selectedCourse} onSave={addMemo} />
+          {memoError && <div className="memo-error">⚠ {memoError}</div>}
           <MemoList
             memos={memos}
-            onUpdateStatus={updateMemoStatus}
-            onDelete={deleteMemo}
+            onUpdateStatus={updateStatus}
+            onDelete={remove}
+            tab={memoTab}
+            onTabChange={setMemoTab}
           />
           <p className="privacy-note">
-            🔒 메모는 이 브라우저에만 저장되며 외부로 전송되지 않습니다.
+            🔒 {memoMode === 'server'
+              ? '메모는 이 업무도우미 서버에만 저장됩니다.'
+              : '메모는 이 브라우저에만 저장됩니다(외부 전송 없음).'}
             {' '}작성 후 {RETENTION_DAYS}일이 지나면 자동 삭제됩니다.
           </p>
         </section>

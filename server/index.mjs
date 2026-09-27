@@ -5,13 +5,36 @@ import express from 'express'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { existsSync } from 'node:fs'
+import { networkInterfaces } from 'node:os'
 import { loadFromDisk, getCache, ageMinutes } from './store.mjs'
 import { runSync, lastAttemptAt } from './sync.mjs'
+import {
+  loadMemos,
+  getMemos,
+  addMemo,
+  mergeMemos,
+  updateMemoStatus,
+  deleteMemo,
+} from './memos.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const DIST = join(ROOT, 'dist')
 
 const PORT = Number(process.env.PORT) || 8080
+// 0.0.0.0 = 모든 네트워크 인터페이스에서 수신(다른 PC 접속 허용).
+// 이 PC에서만 쓰려면 HOST=127.0.0.1 로 실행.
+const HOST = process.env.HOST || '0.0.0.0'
+
+/** 이 PC의 사설 LAN IPv4 주소 목록 (다른 PC에서 접속할 주소 안내용) */
+function lanAddresses() {
+  const out = []
+  for (const list of Object.values(networkInterfaces())) {
+    for (const net of list || []) {
+      if (net.family === 'IPv4' && !net.internal) out.push(net.address)
+    }
+  }
+  return out
+}
 const SYNC_INTERVAL_HOURS = Number(process.env.SYNC_INTERVAL_HOURS) || 6
 const SYNC_ON_BOOT = (process.env.SYNC_ON_BOOT ?? 'true') !== 'false'
 const REFRESH_MIN_INTERVAL_SEC = Number(process.env.REFRESH_MIN_INTERVAL_SEC) || 60
@@ -25,8 +48,9 @@ function isStale() {
 }
 
 const app = express()
+app.use(express.json({ limit: '256kb' }))
 
-// ── API ─────────────────────────────────────────
+// ── API: 교육과정 ─────────────────────────────────
 app.get('/api/courses', (_req, res) => {
   const c = getCache()
   res.json({ updatedAt: c.updatedAt, count: c.courses.length, stale: isStale(), courses: c.courses })
@@ -60,6 +84,41 @@ app.get('/api/health', (_req, res) => {
   })
 })
 
+// ── API: 전화응대 메모 ────────────────────────────
+// 개인정보라 이 서버(=이 PC)에만 저장된다. 외부 전송 없음.
+app.get('/api/memos', (_req, res) => {
+  res.json({ memos: getMemos() })
+})
+
+app.post('/api/memos', async (req, res) => {
+  const body = req.body || {}
+  // 마이그레이션: { memos: [...] } 형태면 일괄 병합
+  if (Array.isArray(body.memos)) {
+    const memos = await mergeMemos(body.memos)
+    return res.json({ memos })
+  }
+  // 단건 저장 — 최소 한 필드는 있어야 함
+  const hasContent =
+    body.callerName || body.phone || body.courseName || body.content
+  if (!hasContent) {
+    return res.status(400).json({ error: '저장할 내용이 없습니다.' })
+  }
+  const memo = await addMemo(body)
+  res.status(201).json({ memo })
+})
+
+app.patch('/api/memos/:id', async (req, res) => {
+  const updated = await updateMemoStatus(req.params.id, (req.body || {}).status)
+  if (!updated) return res.status(404).json({ error: '메모를 찾을 수 없습니다.' })
+  res.json({ memo: updated })
+})
+
+app.delete('/api/memos/:id', async (req, res) => {
+  const removed = await deleteMemo(req.params.id)
+  if (!removed) return res.status(404).json({ error: '메모를 찾을 수 없습니다.' })
+  res.json({ ok: true })
+})
+
 // ── 정적 React 앱 (dist) + SPA 폴백 ────────────────
 if (existsSync(DIST)) {
   app.use(express.static(DIST))
@@ -74,13 +133,25 @@ async function boot() {
   const cached = getCache().courses.length
   if (cached) console.log(`디스크 캐시 로드: ${cached}개 과정 (${getCache().updatedAt})`)
 
+  await loadMemos()
+  console.log(`메모 로드: ${getMemos().length}건`)
+
   if (SYNC_ON_BOOT) runSync('boot')
 
   const intervalMs = SYNC_INTERVAL_HOURS * 60 * 60 * 1000
   setInterval(() => runSync('scheduled'), intervalMs)
 
-  app.listen(PORT, () => {
-    console.log(`YWCA 백엔드 실행: http://localhost:${PORT}`)
+  app.listen(PORT, HOST, () => {
+    console.log(`YWCA 백엔드 실행 (bind ${HOST}:${PORT})`)
+    console.log(`  이 PC:       http://localhost:${PORT}`)
+    if (HOST !== '127.0.0.1') {
+      const ips = lanAddresses()
+      if (ips.length) {
+        for (const ip of ips) console.log(`  다른 PC에서: http://${ip}:${PORT}`)
+      } else {
+        console.log('  (LAN IP를 찾지 못했습니다. 유선/무선 네트워크 연결을 확인하세요.)')
+      }
+    }
     console.log(`자동 동기화 주기: ${SYNC_INTERVAL_HOURS}시간 · 부팅 시 크롤: ${SYNC_ON_BOOT}`)
   })
 }

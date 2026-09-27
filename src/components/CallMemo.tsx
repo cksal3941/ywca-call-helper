@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import type { CallMemo, CallStatus, Course } from '../types'
-import { STAFF_BY_ID } from '../data/staff'
 
 const STATUSES: CallStatus[] = ['안내완료', '담당자연결', '담당자전달', '재연락필요']
 
@@ -15,7 +14,6 @@ const EMPTY = {
   courseName: '',
   content: '',
   checkItem: '',
-  staffName: '',
   memo: '',
 }
 
@@ -32,11 +30,9 @@ export default function CallMemoForm({ selectedCourse, onSave }: Props) {
   /** 현재 선택된 과정 정보를 폼에 채움 */
   function fillFromCourse() {
     if (!selectedCourse) return
-    const staff = STAFF_BY_ID[selectedCourse.staffId]
     setForm((f) => ({
       ...f,
       courseName: selectedCourse.name,
-      staffName: staff ? staff.name : f.staffName,
     }))
     setSaved(false)
   }
@@ -110,22 +106,13 @@ export default function CallMemoForm({ selectedCourse, onSave }: Props) {
         />
       </Field>
 
-      <div className="memo-form__row2">
-        <Field label="담당자">
-          <input
-            value={form.staffName}
-            onChange={(e) => update('staffName', e.target.value)}
-            placeholder="담당자명"
-          />
-        </Field>
-        <Field label="추가 메모">
-          <input
-            value={form.memo}
-            onChange={(e) => update('memo', e.target.value)}
-            placeholder="비고"
-          />
-        </Field>
-      </div>
+      <Field label="추가 메모">
+        <input
+          value={form.memo}
+          onChange={(e) => update('memo', e.target.value)}
+          placeholder="비고"
+        />
+      </Field>
 
       <div className="memo-form__status">
         <span className="memo-form__status-label">처리 상태</span>

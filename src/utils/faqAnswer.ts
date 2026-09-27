@@ -1,5 +1,4 @@
 import type { Course, FaqItem } from '../types'
-import { STAFF_BY_ID } from '../data/staff'
 import { getCourseStatus } from './status'
 import { formatFee, formatPeriod, formatDate } from './format'
 
@@ -20,7 +19,6 @@ function dowOf(iso: string): string {
 export function buildFaqAnswer(faq: FaqItem, course: Course | null): string {
   if (!course) return faq.fallback
 
-  const staff = STAFF_BY_ID[course.staffId]
   const map: Record<string, string> = {
     name: course.name,
     fee: formatFee(course.fee),
@@ -35,13 +33,10 @@ export function buildFaqAnswer(faq: FaqItem, course: Course | null): string {
     condition: course.applyCondition,
     documents: course.documents,
     status: getCourseStatus(course),
-    staff: staff ? staff.name : '담당자',
-    dept: staff ? staff.dept : '',
-    ext: staff ? staff.ext : '',
-    // 수동 보강 필드 — 값이 없으면 담당자 확인 유도 문구
-    curriculum: course.curriculum || '세부 교육내용은 담당자 확인 후 정확히 안내드리겠습니다',
-    materials: course.materials || '준비물은 담당자 확인 후 안내드리겠습니다',
-    refundPolicy: course.refundPolicy || '환불 규정은 담당자 확인이 필요합니다',
+    // 수동 보강 필드 — 값이 없으면 확인 유도 문구
+    curriculum: course.curriculum || '세부 교육내용은 확인 후 정확히 안내드리겠습니다',
+    materials: course.materials || '준비물은 확인 후 안내드리겠습니다',
+    refundPolicy: course.refundPolicy || '환불 규정은 확인이 필요합니다',
   }
 
   return faq.template.replace(/\{(\w+)\}/g, (_, key) =>

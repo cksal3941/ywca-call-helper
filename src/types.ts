@@ -34,8 +34,24 @@ export interface Course {
   applyMethod: string
   /** 신청 조건 */
   applyCondition: string
-  /** 준비 서류 */
+  /** 제출/준비 서류 (상세페이지 '제출서류') */
   documents: string
+  /** 교육대상 (상세페이지) */
+  target?: string
+  /** 선발전형 (상세페이지) */
+  selection?: string
+  /** 교육특전 (상세페이지) */
+  benefits?: string
+  /** 추가비용 (상세페이지, 있을 때만) */
+  extraCost?: string
+  /** 모집기간이 추가 모집 시 연장될 수 있는지 (상세페이지 표기) */
+  recruitExtendable?: boolean
+  /**
+   * 과정 구분 탭 (djjob 카테고리 탭 소속). 상담 시 재원/대상 구분용.
+   * 예: '국민내일배움카드제'(실업자·구직자), '근로자직무능력향상'(재직자),
+   *     '취업교육', '사회문화', '아이돌봄', '기타'. 여러 탭에 속할 수 있음.
+   */
+  tabs?: string[]
   /** 강의실 */
   room: string
   /** 담당자 ID (Staff.id 참조) */
@@ -44,6 +60,8 @@ export interface Course {
   status?: CourseStatus
   /** 비고 */
   note?: string
+  /** 사이트에서 사라져 보관 중인 지난(종료) 과정인지 */
+  archived?: boolean
 
   // ── 수동 보강 필드 (사이트에 없어 별도 입력, supplements.ts 에서 병합) ──
   /** 교육내용 / 커리큘럼 */
@@ -90,8 +108,6 @@ export interface CallMemo {
   content: string
   /** 확인할 사항 */
   checkItem: string
-  /** 담당자 */
-  staffName: string
   /** 처리 상태 */
   status: CallStatus
   /** 추가 메모 */
@@ -103,8 +119,9 @@ export interface FaqItem {
   id: string
   question: string
   /**
-   * 답변 템플릿. {name}{fee}{eduPeriod}{recruitPeriod}{time}{days}
-   * {room}{applyMethod}{documents}{staff}{ext}{status} 치환.
+   * 답변 템플릿. {name}{fee}{subsidized}{eduPeriod}{recruitPeriod}{openDate}
+   * {days}{time}{room}{applyMethod}{condition}{documents}{status}
+   * {curriculum}{materials}{refundPolicy} 치환.
    * 과정 미선택 시 사용할 일반 답변은 fallback 사용.
    */
   template: string

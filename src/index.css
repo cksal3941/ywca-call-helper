@@ -4,8 +4,8 @@
   --border: #d9dee7;
   --text: #1f2937;
   --text-muted: #6b7280;
-  --primary: #d81b60;      /* YWCA 포인트 (핑크/마젠타) */
-  --primary-dark: #ad1457;
+  --primary: #5b6bb5;      /* 뮤트 인디고 (눈이 편한 포인트) */
+  --primary-dark: #464f96;
   --alert: #e53935;
   --ok: #2e7d32;
   --radius: 10px;
@@ -49,20 +49,16 @@ body {
   font-size: 18px;
   font-weight: 800;
   white-space: nowrap;
-}
-
-.topbar__search {
-  flex: 1;
-  max-width: 640px;
-}
-
-.topbar__search-input {
-  width: 100%;
-  padding: 10px 14px;
-  font-size: 16px;
+  background: none;
   border: none;
-  border-radius: 8px;
-  outline: none;
+  color: inherit;
+  font-family: inherit;
+  padding: 0;
+  cursor: pointer;
+}
+
+.topbar__brand:hover {
+  opacity: 0.85;
 }
 
 .topbar__meta {
@@ -407,20 +403,15 @@ body {
 }
 
 .today-card {
-  border: 1px solid var(--border);
+  border: 1px solid #e5e8ee;
   border-radius: 10px;
   padding: 14px;
   background: #fff;
-  border-top: 4px solid var(--border);
 }
 
-.today-card--start    { border-top-color: #6a1b9a; }
-.today-card--end      { border-top-color: #757575; }
-.today-card--close    { border-top-color: #ef6c00; }
-.today-card--callback { border-top-color: var(--alert); background: #fff5f5; }
+.today-card--callback { background: #fff5f5; }
 .today-card--wide {
   grid-column: 1 / -1;
-  border-top-color: #2e7d32;
 }
 
 .today-card__title {
@@ -585,6 +576,56 @@ body {
   font-weight: 700;
 }
 
+/* 재원별 빠른필터 */
+.courselist__funding {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  margin-top: 6px;
+}
+
+.courselist__funding-label {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-muted);
+  margin-right: 2px;
+}
+
+.fund-chip {
+  padding: 4px 9px;
+  font-size: 12px;
+  border: 1px solid #c9d0ee;
+  border-radius: 6px;
+  background: #f2f4fb;
+  color: var(--primary-dark);
+  cursor: pointer;
+}
+
+.fund-chip:not(.fund-chip--active):hover {
+  border-color: var(--primary);
+}
+
+.fund-chip--active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+  font-weight: 700;
+}
+
+/* 국비지원 토글 — 재원 탭과 구분되는 앰버 톤 */
+.fund-chip--subsidy {
+  background: #fff8e1;
+  border-color: #f0c869;
+  color: #8a5a00;
+}
+
+.fund-chip--subsidy.fund-chip--active {
+  background: #f0a500;
+  border-color: #f0a500;
+  color: #fff;
+}
+
 .courselist__count {
   font-size: 12px;
   color: var(--text-muted);
@@ -619,7 +660,7 @@ body {
   text-align: left;
   background: var(--panel-bg);
   border: none;
-  border-bottom: 1px solid #f0d4e0;
+  border-bottom: 1px solid #dfe3f3;
   font-size: 12.5px;
   font-weight: 800;
   color: var(--primary-dark);
@@ -693,13 +734,18 @@ body {
 
 .course-item:hover {
   border-color: var(--primary);
-  background: #fff5f8;
+  background: #f2f4fb;
 }
 
 .course-item--active {
   border-color: var(--primary);
-  background: #fde7ef;
+  background: #e6e9f7;
   box-shadow: inset 3px 0 0 var(--primary);
+}
+
+/* 종료 보관 과정 — 흐리게 */
+.course-item--archived {
+  opacity: 0.62;
 }
 
 .course-item__name {
@@ -812,10 +858,44 @@ body {
   color: var(--text);
 }
 
+/* 종료 보관 과정 안내 배너 */
+.detail__archived {
+  margin: 0 0 12px;
+  padding: 9px 12px;
+  font-size: 13px;
+  color: #5c4a00;
+  background: #fff4d6;
+  border: 1px solid #f0d68a;
+  border-radius: 8px;
+}
+
+/* 과정 구분 탭(재원/대상) — 상담 시 빠른 확인 */
+.detail__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 14px;
+}
+
+.detail-tab {
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 14px;
+  background: #eef0f6;
+  color: var(--text-muted);
+}
+
+.detail-tab--funding {
+  background: #e7ebfb;
+  color: var(--primary-dark);
+  border: 1px solid #c9d0ee;
+}
+
 /* 자주 묻는 핵심 정보 3종 — 크게 강조 */
 .detail__highlights {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 10px;
   margin-bottom: 16px;
 }
@@ -881,6 +961,15 @@ body {
   font-size: 14.5px;
   color: var(--text);
   word-break: keep-all;
+  white-space: pre-line;
+}
+
+/* 모집기간 옆 '추가 모집 시 연장' 안내 */
+.detail__note {
+  color: #ec7a23;
+  font-size: 12.5px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 /* 수동 보강 정보 블록 (교육내용/준비물/환불) */
@@ -913,6 +1002,7 @@ body {
   line-height: 1.6;
   color: var(--text);
   word-break: keep-all;
+  white-space: pre-line;
 }
 
 /* 신청/정원 여석 태그 */
@@ -979,8 +1069,8 @@ body {
 
 .faq__answer {
   margin-top: 12px;
-  background: #fff5f8;
-  border: 1px solid #f3c6d8;
+  background: #f2f4fb;
+  border: 1px solid #c9d0ee;
   border-radius: 10px;
   padding: 14px 16px;
   display: flex;
@@ -1025,14 +1115,14 @@ body {
   font-size: 13px;
   border: 1px dashed var(--primary);
   border-radius: 8px;
-  background: #fff5f8;
+  background: #f2f4fb;
   color: var(--primary);
   cursor: pointer;
   text-align: left;
 }
 
 .memo-form__fill:hover {
-  background: #fde7ef;
+  background: #e6e9f7;
 }
 
 .memo-form__row2 {
@@ -1279,6 +1369,18 @@ body {
 .memo-badge--connect  { background: #1565c0; }
 .memo-badge--handover { background: #ef6c00; }
 .memo-badge--callback { background: var(--alert); }
+
+/* 서버 저장 오류 안내 */
+.memo-error {
+  margin-top: 10px;
+  padding: 9px 11px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #b71c1c;
+  background: #ffebee;
+  border: 1px solid #f4b9b9;
+  border-radius: 8px;
+}
 
 /* 개인정보 안내 문구 */
 .privacy-note {

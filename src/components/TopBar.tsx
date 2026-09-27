@@ -14,11 +14,10 @@ function syncLabel(iso: string | null): string {
 }
 
 interface Props {
-  query: string
-  onQueryChange: (q: string) => void
+  /** 로고 클릭 시 홈 화면으로 이동 */
+  onHome: () => void
   callbackCount: number
   recruitingCount: number
-  searchRef?: React.Ref<HTMLInputElement>
   // 동기화 상태
   source: 'server' | 'fallback'
   updatedAt: string | null
@@ -28,11 +27,9 @@ interface Props {
 }
 
 export default function TopBar({
-  query,
-  onQueryChange,
+  onHome,
   callbackCount,
   recruitingCount,
-  searchRef,
   source,
   updatedAt,
   stale,
@@ -46,19 +43,9 @@ export default function TopBar({
 
   return (
     <header className="topbar">
-      <div className="topbar__brand">YWCA 전화응대 업무도우미</div>
-
-      <div className="topbar__search">
-        <input
-          ref={searchRef}
-          type="text"
-          className="topbar__search-input"
-          placeholder="과정명 · 담당자 통합 검색  ('/' 키로 바로 검색)"
-          value={query}
-          onChange={(e) => onQueryChange(e.target.value)}
-          aria-label="통합 검색"
-        />
-      </div>
+      <button className="topbar__brand" onClick={onHome} title="홈으로">
+        YWCA
+      </button>
 
       <div className="topbar__meta">
         <span className="topbar__date">{todayLabel()}</span>
@@ -71,8 +58,12 @@ export default function TopBar({
         <button
           className={'topbar__sync' + (stale ? ' topbar__sync--stale' : '')}
           onClick={onRefresh}
-          disabled={refreshing}
-          title="교육과정을 사이트에서 즉시 갱신"
+          disabled={refreshing || source === 'fallback'}
+          title={
+            source === 'fallback'
+              ? '오프라인 배포(내장 데이터) — 즉시 갱신은 서버 실행 시에만 가능'
+              : '교육과정을 사이트에서 즉시 갱신'
+          }
         >
           {refreshing ? '갱신 중…' : `↻ ${syncText}`}
         </button>

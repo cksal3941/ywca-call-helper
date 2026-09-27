@@ -1,11 +1,21 @@
 import type { Course } from '../types'
-import { STAFF_BY_ID } from '../data/staff'
-import { getCourseStatus } from '../utils/status'
+import { getCourseStatus, isAlwaysOpen } from '../utils/status'
 import { formatFee, formatPeriod } from '../utils/format'
 import { StatusBadge } from './CourseList'
 
 interface Props {
   course: Course | null
+}
+
+/** placeholder('확인 필요')·빈 값이 아닌 실제 값인지 */
+function isReal(v: string | undefined): v is string {
+  return !!v && v.trim() !== '' && v.trim() !== '확인 필요'
+}
+
+/** 재원/대상 구분 탭 (상담 시 강조). 그 외 탭은 일반 표시 */
+const FUNDING_TABS: Record<string, string> = {
+  국민내일배움카드제: '국민내일배움카드제 · 실업자/구직자',
+  근로자직무능력향상: '근로자 직무능력향상 · 재직자',
 }
 
 export default function CourseDetail({ course }: Props) {
@@ -17,7 +27,6 @@ export default function CourseDetail({ course }: Props) {
     )
   }
 
-  const staff = STAFF_BY_ID[course.staffId]
   const status = getCourseStatus(course)
 
   return (
@@ -27,7 +36,27 @@ export default function CourseDetail({ course }: Props) {
         <StatusBadge status={status} />
       </div>
 
-      {/* 가장 자주 묻는 3가지를 크게 강조 */}
+      {course.archived && (
+        <div className="detail__archived">
+          🗄 사이트에서 내려간 <b>지난(종료) 과정</b>입니다. 정보는 마지막 수집 시점 기준입니다.
+        </div>
+      )}
+
+      {course.tabs && course.tabs.length > 0 && (
+        <div className="detail__tabs">
+          {course.tabs.map((t) => (
+            <span
+              key={t}
+              className={'detail-tab' + (FUNDING_TABS[t] ? ' detail-tab--funding' : '')}
+              title={FUNDING_TABS[t]}
+            >
+              {FUNDING_TABS[t] ?? t}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* 가장 자주 묻는 항목을 크게 강조 */}
       <div className="detail__highlights">
         <Highlight label="수강료" value={formatFee(course.fee)} />
         <Highlight
@@ -35,30 +64,49 @@ export default function CourseDetail({ course }: Props) {
           value={course.isSubsidized ? '가능' : '해당 없음'}
           accent={course.isSubsidized}
         />
-        <Highlight label="담당자" value={staff ? `${staff.name} (내선 ${staff.ext})` : '-'} />
       </div>
 
       <dl className="detail__grid">
-        <Row label="모집기간" value={formatPeriod(course.recruitStart, course.recruitEnd)} />
+        <div className="detail__row">
+          <dt className="detail__label">모집기간</dt>
+          <dd className="detail__value">
+            {isAlwaysOpen(course) ? (
+              <>
+                연중 상시모집
+                <span className="detail__note"> · 게시 기간 {formatPeriod(course.recruitStart, course.recruitEnd)}</span>
+              </>
+            ) : (
+              <>
+                {formatPeriod(course.recruitStart, course.recruitEnd)}
+                {course.recruitExtendable && (
+                  <span className="detail__note"> · 추가 모집 시 연장될 수 있음</span>
+                )}
+              </>
+            )}
+          </dd>
+        </div>
         <Row label="교육기간" value={formatPeriod(course.eduStart, course.eduEnd)} />
         <Row label="교육요일" value={course.days} />
         <Row label="교육시간" value={course.time} />
         <EnrollRow enrolled={course.enrolled} capacity={course.capacity} />
         <Row label="강의실" value={course.room} />
         <Row label="신청방법" value={course.applyMethod} />
-        <Row label="신청조건" value={course.applyCondition} />
-        <Row label="준비서류" value={course.documents} />
-        <Row
-          label="담당부서"
-          value={staff ? `${staff.dept} · ${staff.role}` : '-'}
-        />
+        {course.target && <Row label="교육대상" value={course.target} />}
+        {course.extraCost && <Row label="추가비용" value={course.extraCost} />}
+        {isReal(course.documents) && <Row label="제출서류" value={course.documents} />}
         {course.note && <Row label="비고" value={course.note} highlight />}
       </dl>
 
-      {/* 수동 보강 정보 (있을 때만) */}
-      {(course.curriculum || course.materials || course.refundPolicy) && (
+      {/* 상세 보강 정보 (있을 때만) — 공식 사이트 + 수동 보강 */}
+      {(course.curriculum ||
+        course.selection ||
+        course.benefits ||
+        course.materials ||
+        course.refundPolicy) && (
         <dl className="detail__extra">
           {course.curriculum && <ExtraBlock label="교육내용" value={course.curriculum} />}
+          {course.selection && <ExtraBlock label="선발전형" value={course.selection} />}
+          {course.benefits && <ExtraBlock label="교육특전" value={course.benefits} />}
           {course.materials && <ExtraBlock label="준비물" value={course.materials} />}
           {course.refundPolicy && <ExtraBlock label="환불 규정" value={course.refundPolicy} />}
         </dl>

@@ -1,5 +1,14 @@
 import type { Course, CourseStatus } from '../types'
 
+/**
+ * 연중/상시모집 과정인가 (이름에 '연중' 또는 '상시모집' 포함).
+ * 이런 과정은 게시된 교육기간(지난 회차 날짜일 수 있음)과 무관하게 상시 접수하므로
+ * 상태를 날짜로 판정하지 않고 '모집중'으로 고정한다.
+ */
+export function isAlwaysOpen(course: Course): boolean {
+  return /상시모집|연중/.test(course.name)
+}
+
 /** 오늘 날짜를 YYYY-MM-DD 로 반환 (로컬 기준) */
 export function todayStr(now: Date = new Date()): string {
   const y = now.getFullYear()

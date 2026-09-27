@@ -24,7 +24,8 @@ function render(courses) {
  *
  * 런타임에는 백엔드(/api/courses)가 최신값을 제공하고, 서버 불가 시 이 스냅샷으로 폴백한다.
  * capacity=모집정원, enrolled=현재 신청인원. fee=수강료(자비부담금), isSubsidized=국비지원 여부.
- * ⚠ 담당자/부서/내선(staff.ts), 신청조건/준비서류는 사이트에 없어 placeholder("확인 필요").
+ * 교육내용/교육대상/제출서류/선발전형/교육특전/모집연장여부는 각 과정 상세페이지에서 수집.
+ * ⚠ 담당자/부서/내선(staff.ts)은 사이트에 없어 placeholder. 일부 과정은 상세 항목이 비어 있을 수 있음.
  */
 export const COURSES: Course[] = [
 ${body},

@@ -1,6 +1,7 @@
 node_modules/
 dist/
 data/courses.json
+data/memos.json
 logs/
 *.log
 .DS_Store

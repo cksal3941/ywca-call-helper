@@ -1,14 +1,15 @@
-import { useState } from 'react'
 import type { CallMemo, CallStatus } from '../types'
 import { formatDateTime, maskPhone } from '../utils/format'
+
+export type MemoTab = 'callback' | 'all'
 
 interface Props {
   memos: CallMemo[]
   onUpdateStatus: (id: string, status: CallStatus) => void
   onDelete: (id: string) => void
+  tab: MemoTab
+  onTabChange: (tab: MemoTab) => void
 }
-
-type Tab = 'callback' | 'all'
 
 const STATUS_CLASS: Record<CallStatus, string> = {
   안내완료: 'done',
@@ -17,9 +18,7 @@ const STATUS_CLASS: Record<CallStatus, string> = {
   재연락필요: 'callback',
 }
 
-export default function MemoList({ memos, onUpdateStatus, onDelete }: Props) {
-  const [tab, setTab] = useState<Tab>('callback')
-
+export default function MemoList({ memos, onUpdateStatus, onDelete, tab, onTabChange }: Props) {
   const callbacks = memos.filter((m) => m.status === '재연락필요')
   const list = tab === 'callback' ? callbacks : memos
 
@@ -28,13 +27,13 @@ export default function MemoList({ memos, onUpdateStatus, onDelete }: Props) {
       <div className="memolist__tabs">
         <button
           className={'memo-tab' + (tab === 'callback' ? ' memo-tab--active' : '')}
-          onClick={() => setTab('callback')}
+          onClick={() => onTabChange('callback')}
         >
           🔴 재연락 필요 {callbacks.length}
         </button>
         <button
           className={'memo-tab' + (tab === 'all' ? ' memo-tab--active' : '')}
-          onClick={() => setTab('all')}
+          onClick={() => onTabChange('all')}
         >
           전체 기록 {memos.length}
         </button>
@@ -69,7 +68,6 @@ export default function MemoList({ memos, onUpdateStatus, onDelete }: Props) {
 
             <div className="memo-card__meta">
               <span>{formatDateTime(m.createdAt)}</span>
-              {m.staffName && <span>담당 {m.staffName}</span>}
             </div>
 
             <div className="memo-card__actions">
